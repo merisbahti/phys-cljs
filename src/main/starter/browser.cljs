@@ -7,9 +7,14 @@
 (def canvas (js/document.querySelector "canvas"))
 ;; set canvas width and height
 
-
-(set! (.-width canvas) js/window.innerWidth)
-(set! (.-height canvas) js/window.innerHeight)
+(defn update-canvas-size
+  []
+  (let [canvas (js/document.querySelector "canvas")]
+    (js/console.log "resizing")
+    (set! (.-width canvas) js/window.innerWidth)
+    (set! (.-height canvas) js/window.innerHeight)))
+(js/window.addEventListener "resize" update-canvas-size)
+(update-canvas-size)
 
 (def ctx (.getContext canvas "2d"))
 (set! (.-fillStyle ctx) "#faf")
@@ -22,10 +27,10 @@
 (defn draw-circle
   [x y]
   (set! (.-fillStyle ctx) "#f0f")
-  (.arc ctx 1 1 10 0 (* Math/PI 2) true)
+  (.arc ctx x y 10 0 (* Math/PI 2) true)
   (.fill ctx))
 
-(def state (atom [{:pos {:x 0, :y 50}, :vel {:x 1, :y 0}}]))
+(def state (atom [{:pos {:x 0, :y 0}, :vel {:x 1, :y 0}}]))
 
 (defn iter
   []
@@ -36,21 +41,19 @@
 
 (defn render
   []
-  (for [p (deref state)]
-    (do (js/console.log p) (draw-circle (:x (:pos p)) (:y (:pos p))))))
+  (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p))))
+           (deref state))))
 
 
-(draw-circle 5 5)
-(draw-circle 10 10)
-(js/console.log ctx)
-;; (defn myloop
-;;   []
-;;   (js/console.log "looping")
-;;   (iter)
-;;   (render)
-;;   (js/setTimeout myloop 1000))
 
-;; (myloop)
+(defn myloop
+  []
+  (js/console.log "looping")
+  (render)
+  (iter)
+  (js/setTimeout myloop 1000))
+
+(myloop)
 
 ;; this is called before any code is reloaded
 (defn ^:dev/before-load stop [] (js/console.log "stop"))
