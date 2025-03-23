@@ -1,0 +1,15 @@
+;; shadow-cljs configuration
+{:source-paths ; .cljs files go here
+   ["src/dev" "src/main" "src/test"],
+ :dependencies ; covered later
+   [],
+ :nrepl {:init-ns my.repl, :middleware [], :port 9000},
+ :dev-http ; starts a http dev server on http://localhost:8020 and serves
+           ; `public`
+   {8020 "public"},
+ :builds {:app ; build identifier
+            {:asset-path "/js",
+             :modules {:main ; becomes public/js/main.js
+                         {:init-fn starter.browser/init}},
+             :output-dir "public/js",
+             :target :browser}}}
