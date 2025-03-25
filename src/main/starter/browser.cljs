@@ -2,10 +2,11 @@
 
 ;; start is called by init and after code reloading finishes
 (defn ^:dev/after-load start [] (js/console.log "start"))
-(defn ^:dev/after-load init [])
+(defn ^:dev/after-load init [] (start))
 
 (def canvas (js/document.querySelector "canvas"))
 ;; set canvas width and height
+
 
 (defn update-canvas-size
   []
@@ -32,16 +33,19 @@
 
 (def state (atom [{:pos {:x 0, :y 0}, :vel {:x 1, :y 0}}]))
 
-(defn iter
+(defn myiter
   []
-  (swap! state (fn [s]
+  (swap! state (fn []
                  (map (fn [p]
-                        (assoc p :pos (update-in (:pos p) [:x] + (:vel p))))
-                   s))))
+                        (let [vel (:vel p) vel-x (:x vel) vel-y (:y vel)] p))
+                   (deref state)))))
+
 
 (defn render
   []
-  (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p))))
+  (doall (map (fn [p]
+                (js/console.log (str) p)
+                (draw-circle (:x (:pos p)) (:y (:pos p))))
            (deref state))))
 
 
@@ -50,8 +54,8 @@
   []
   (js/console.log "looping")
   (render)
-  (iter)
-  (js/setTimeout myloop 1000))
+  (myiter)
+  (js/setTimeout myloop 100))
 
 (myloop)
 

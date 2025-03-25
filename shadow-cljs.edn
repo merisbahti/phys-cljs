@@ -3,7 +3,7 @@
    ["src/dev" "src/main" "src/test"],
  :dependencies ; covered later
    [],
- :nrepl {:init-ns my.repl, :middleware [], :port 9000},
+ :nrepl {:init-ns starter.browser, :middleware [], :port 9000},
  :dev-http ; starts a http dev server on http://localhost:8020 and serves
            ; `public`
    {8020 "public"},
