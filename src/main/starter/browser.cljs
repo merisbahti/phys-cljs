@@ -29,63 +29,88 @@
   [x y color]
   (.beginPath ctx)
   (set! (.-fillStyle ctx) color)
-  (.arc ctx x y 10 0 (* Math/PI 2) true)
+  (.arc ctx x y 5 0 (* Math/PI 2) true)
   (.fill ctx))
 
-(def state
-  (atom (map (fn [xs]
-               (-> xs
-                   (update-in [:vel :x] (fn [x] (+ 10 x)))
-                   (update-in [:vel :y] (fn [x] (+ 10 x)))))
-          [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 1, :y 1}}
-           {:color "#f00", :pos {:x 150, :y 0}, :vel {:x 0.5, :y 0.1}}
-           {:color "#00f", :pos {:x 0, :y 0}, :vel {:x -5, :y -8}}
-           {:color "#0F0", :pos {:x 150, :y 150}, :vel {:x 0.5, :y 0.25}}])))
+(def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
 
 (defn random-color
   "gives a random color between 000 and fff"
   []
   (-> (js/Math.random)
-      (* 0xFFFFFF)
+      (* (/ (* 0xFFFFFF) 3))
+      (+ (* 2 (/ (* 0xFFFFFF) 3)))
       (js/Math.ceil)
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
 
 
-(js/document.addEventListener
-  "click"
-  (fn [x]
-    (swap! state (fn [state]
-                   (conj state
-                         {:color (random-color),
-                          :pos {:x x.pageX, :y x.pageY},
-                          :vel {:x (* 10 (- 0.5 (js/Math.random))),
-                                :y (* 10 (- 0.5 (js/Math.random)))}})))))
+(js/document.addEventListener "click"
+                              (fn [x]
+                                (swap! state (fn [state]
+                                               (conj state
+                                                     {:color (random-color),
+                                                      :pos {:x x.pageX,
+                                                            :y x.pageY},
+                                                      :vel {:x 0, :y 0}})))))
 
 (defn force-polarity
   [pos max-pos vel]
   (cond (> pos max-pos) (* -1 (abs vel))
         (> 0 pos) (abs vel)
         true vel))
+(def G 0.00000081)
+
+(defn gravity-vec
+  [p1 p2]
+  (let [x-diff (- (get-in p2 [:pos :x]) (get-in p1 [:pos :x]))
+        y-diff (- (get-in p2 [:pos :y]) (get-in p1 [:pos :y]))
+        tot-diff (abs (+ x-diff y-diff))
+        x-part (/ x-diff tot-diff)
+        y-part (/ y-diff tot-diff)
+        squared-diff (js/Math.sqrt (+ (js/Math.pow y-diff 2)
+                                      (js/Math.pow x-diff 2)))
+        total-force (* G squared-diff)]
+    (if (< tot-diff 0.1)
+      {:x 0, :y 0}
+      {:x (* x-part total-force), :y (* y-part total-force)})))
+(gravity-vec {:pos {:x 10, :y 10}} {:pos {:x -10, :y -10}})
+
+(defn point-gravity
+  [point points]
+  (let [forces (map #(gravity-vec point %) points)] forces))
+
+
+(defn add-vec [a b] {:x (+ (:x a) (:x b)), :y (+ (:y a) (:y b))})
+(add-vec {:x 1, :y 2} {:x 3, :y 4})
+(let [pts [{:pos {:x 10, :y 10}} {:pos {:x 9.0, :y 9.0}}
+           {:pos {:x 11.0, :y 11.0}}]
+      pt (nth pts 0)]
+  (reduce add-vec (point-gravity pt pts)))
 
 
 (defn myiter
   []
-  (swap! state (fn [state]
-                 (map (fn [p]
-                        (-> p
-                            (update-in [:vel :y]
-                                       #(force-polarity (get-in p [:pos :y])
-                                                        (.-height canvas)
-                                                        (get-in p [:vel :y])))
-                            (update-in [:vel :x]
-                                       #(force-polarity (get-in p [:pos :x])
-                                                        (.-width canvas)
-                                                        (get-in p [:vel :x])))
-                            (update-in [:pos :y] #(+ % (get-in p [:vel :y])))
-                            (update-in [:pos :x] #(+ % (get-in p [:vel :x])))))
-                   state))))
+  (let [myfn (fn [state]
+               (map (fn [p]
+                      (-> p
+                          (update-in [:vel]
+                                     #(add-vec %
+                                               (reduce add-vec
+                                                 (point-gravity p state))))
+                          (update-in [:vel :y]
+                                     #(force-polarity (get-in p [:pos :y])
+                                                      (.-height canvas)
+                                                      %))
+                          (update-in [:vel :x]
+                                     #(force-polarity (get-in p [:pos :x])
+                                                      (.-width canvas)
+                                                      %))
+                          (update-in [:pos :y] #(+ % (get-in p [:vel :y])))
+                          (update-in [:pos :x] #(+ % (get-in p [:vel :x])))))
+                 state))]
+    (swap! state myfn)))
 
 
 (defn render
@@ -95,13 +120,13 @@
 
 
 
-
 (defn myloop
   []
   (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
   (render)
   (myiter)
   (js/requestAnimationFrame myloop))
+
 
 (myloop)
 
