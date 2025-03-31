@@ -38,13 +38,12 @@
   "gives a random color between 000 and fff"
   []
   (-> (js/Math.random)
-      (* (/ (* 0xFFFFFF) 3))
-      (+ (* 2 (/ (* 0xFFFFFF) 3)))
+      (* (/ (* 0xFFFFFF) 4))
+      (+ (* 3 (/ (* 0xFFFFFF) 4)))
       (js/Math.ceil)
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-
 
 (js/document.addEventListener "click"
                               (fn [x]
