@@ -33,6 +33,7 @@
   (.fill ctx))
 
 (def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
+(def mousedownstate (atom nil))
 
 (defn random-color
   "gives a random color between 000 and fff"
@@ -44,15 +45,33 @@
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-
-(js/document.addEventListener "click"
-                              (fn [x]
-                                (swap! state (fn [state]
-                                               (conj state
-                                                     {:color (random-color),
-                                                      :pos {:x x.pageX,
-                                                            :y x.pageY},
-                                                      :vel {:x 0, :y 0}})))))
+(js/document.addEventListener
+  "mousedown"
+  (fn [x] (swap! mousedownstate (fn [_] {:x x.x, :y x.y}))))
+(def max-speed 10)
+(def max-distance 200)
+(js/document.addEventListener
+  "mouseup"
+  (fn [x]
+    (swap! state (fn [state]
+                   (let [{downX :x, downY :y} (deref mousedownstate)
+                         hoverX x.pageX
+                         hoverY x.pageY
+                         xDiff (js/Math.abs (- downX hoverX))
+                         yDiff (js/Math.abs (- downY hoverY))
+                         distance (js/Math.sqrt (+ (js/Math.pow xDiff 2)
+                                                   (js/Math.pow yDiff 2)))
+                         distanceFactor (/ (js/Math.min 200 distance)
+                                           max-distance)
+                         xySum (+ xDiff yDiff)
+                         yPart (/ (- downY hoverY) xySum)
+                         xPart (/ (- downX hoverX) xySum)
+                         xVel (* xPart distanceFactor max-speed)
+                         yVel (* yPart distanceFactor max-speed)]
+                     (conj state
+                           {:color (random-color),
+                            :pos {:x downX, :y downY},
+                            :vel {:x xVel, :y yVel}}))))))
 
 (defn force-polarity
   [pos max-pos vel]
