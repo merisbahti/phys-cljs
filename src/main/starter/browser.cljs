@@ -34,6 +34,7 @@
 
 (def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
 (def mouse-pos-state (atom {:x 0, :y 0}))
+(def mouse-down-pos (atom nil))
 (def mousedownstate (atom false))
 
 (defn random-color
@@ -46,18 +47,22 @@
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-(js/document.addEventListener "mousedown"
-                              (fn [x] (swap! mousedownstate (fn [_] true))))
+(js/document.addEventListener
+  "mousedown"
+  (fn [x]
+    (swap! mouse-down-pos (fn [_] (deref mouse-pos-state)))
+    (swap! mousedownstate (fn [_] true))))
 (def max-speed 10)
 (def max-distance 200)
 (js/document.addEventListener
   "mousemove"
   (fn [x] (swap! mouse-pos-state (fn [_] {:x x.pageX, :y x.pageY}))))
+
 (js/document.addEventListener
   "mouseup"
   (fn [x]
     (swap! state (fn [state]
-                   (let [{downX :x, downY :y} (deref mouse-pos-state)
+                   (let [{downX :x, downY :y} (deref mouse-down-pos)
                          hoverX x.pageX
                          hoverY x.pageY
                          xDiff (js/Math.abs (- downX hoverX))
@@ -71,17 +76,23 @@
                          xPart (/ (- downX hoverX) xySum)
                          xVel (* xPart distanceFactor max-speed)
                          yVel (* yPart distanceFactor max-speed)]
+                     (js/console.log distance
+                                     distanceFactor
+                                     (str {:color (random-color),
+                                           :pos {:x downX, :y downY},
+                                           :vel {:x xVel, :y yVel}}))
                      (conj state
                            {:color (random-color),
                             :pos {:x downX, :y downY},
                             :vel {:x xVel, :y yVel}}))))
+    (swap! mouse-down-pos (fn [_] nil))
     (swap! mousedownstate (fn [_] false))))
 
 (defn force-polarity
   [pos max-pos vel]
   (cond (> pos max-pos) (* -1 (abs vel))
         (> 0 pos) (abs vel)
-        tkrue vel))
+        true vel))
 (def G 0.00000081)
 
 (defn gravity-vec
@@ -139,8 +150,7 @@
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
            (deref state)))
-  (doall (let [{x :x, y :y} (deref mouse-pos-state)]
-           (when (and x y) (js/console.log x y)))))
+  (doall (let [{x :x, y :y} (deref mouse-pos-state)] (when (and x y) '()))))
 
 
 (defn myloop
