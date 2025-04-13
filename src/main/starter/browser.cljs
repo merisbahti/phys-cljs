@@ -33,7 +33,8 @@
   (.fill ctx))
 
 (def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
-(def mousedownstate (atom nil))
+(def mouse-pos-state (atom {:x 0, :y 0}))
+(def mousedownstate (atom false))
 
 (defn random-color
   "gives a random color between 000 and fff"
@@ -45,16 +46,18 @@
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-(js/document.addEventListener
-  "mousedown"
-  (fn [x] (swap! mousedownstate (fn [_] {:x x.x, :y x.y}))))
+(js/document.addEventListener "mousedown"
+                              (fn [x] (swap! mousedownstate (fn [_] true))))
 (def max-speed 10)
 (def max-distance 200)
+(js/document.addEventListener
+  "mousemove"
+  (fn [x] (swap! mouse-pos-state (fn [_] {:x x.pageX, :y x.pageY}))))
 (js/document.addEventListener
   "mouseup"
   (fn [x]
     (swap! state (fn [state]
-                   (let [{downX :x, downY :y} (deref mousedownstate)
+                   (let [{downX :x, downY :y} (deref mouse-pos-state)
                          hoverX x.pageX
                          hoverY x.pageY
                          xDiff (js/Math.abs (- downX hoverX))
@@ -71,13 +74,14 @@
                      (conj state
                            {:color (random-color),
                             :pos {:x downX, :y downY},
-                            :vel {:x xVel, :y yVel}}))))))
+                            :vel {:x xVel, :y yVel}}))))
+    (swap! mousedownstate (fn [_] false))))
 
 (defn force-polarity
   [pos max-pos vel]
   (cond (> pos max-pos) (* -1 (abs vel))
         (> 0 pos) (abs vel)
-        true vel))
+        tkrue vel))
 (def G 0.00000081)
 
 (defn gravity-vec
@@ -134,8 +138,9 @@
 (defn render
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
-           (deref state))))
-
+           (deref state)))
+  (doall (let [{x :x, y :y} (deref mouse-pos-state)]
+           (when (and x y) (js/console.log x y)))))
 
 
 (defn myloop
