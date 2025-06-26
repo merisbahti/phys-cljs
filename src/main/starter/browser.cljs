@@ -7,7 +7,6 @@
 (def canvas (js/document.querySelector "canvas"))
 ;; set canvas width and height
 
-
 (defn update-canvas-size
   []
   (let [canvas (js/document.querySelector "canvas")]
@@ -18,9 +17,6 @@
 (update-canvas-size)
 
 (def ctx (.getContext canvas "2d"))
-(set! (.-fillStyle ctx) "#faf")
-
-
 
 ;;ctx.lineWidth = 10;
 ;; assign object properties
@@ -78,9 +74,9 @@
                          yVel (* yPart distanceFactor max-speed)]
                      (js/console.log distance
                                      distanceFactor
-                                     (str {:color (random-color),
-                                           :pos {:x downX, :y downY},
-                                           :vel {:x xVel, :y yVel}}))
+                                     (clj->js {:color (random-color),
+                                               :pos {:x downX, :y downY},
+                                               :vel {:x xVel, :y yVel}}))
                      (conj state
                            {:color (random-color),
                             :pos {:x downX, :y downY},
@@ -114,14 +110,12 @@
   [point points]
   (let [forces (map #(gravity-vec point %) points)] forces))
 
-
 (defn add-vec [a b] {:x (+ (:x a) (:x b)), :y (+ (:y a) (:y b))})
 (add-vec {:x 1, :y 2} {:x 3, :y 4})
 (let [pts [{:pos {:x 10, :y 10}} {:pos {:x 9.0, :y 9.0}}
            {:pos {:x 11.0, :y 11.0}}]
       pt (nth pts 0)]
   (reduce add-vec (point-gravity pt pts)))
-
 
 (defn myiter
   []
@@ -145,23 +139,23 @@
                  state))]
     (swap! state myfn)))
 
-
 (defn render
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
            (deref state)))
-  (doall (let [{x :x, y :y} (deref mouse-pos-state)] (when (and x y) '()))))
+  (doall
+    (let [{x :x, y :y} (deref mouse-down-pos)]
+      (when (and x y) (.beginPath ctx) (.moveTo ctx x y) (.lineTo ctx x y)))))
 
-
+(def looping (atom true))
 (defn myloop
   []
   (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
   (render)
   (myiter)
-  (js/requestAnimationFrame myloop))
-
+  (when (deref looping) (js/requestAnimationFrame myloop)))
 
 (myloop)
 
 ;; this is called before any code is reloaded
-(defn ^:dev/before-load stop [] (js/console.log "stop"))
+(defn ^:dev/before-load stop [] (set! looping true))
