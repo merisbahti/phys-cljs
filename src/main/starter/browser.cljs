@@ -1,4 +1,5 @@
-(ns starter.browser)
+(ns starter.browser
+  (:require [clojure.walk :as walk]))
 
 ;; start is called by init and after code reloading finishes
 (defn ^:dev/after-load start [] (js/console.log "start"))
@@ -43,11 +44,11 @@
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-(js/document.addEventListener
-  "mousedown"
-  (fn [x]
-    (swap! mouse-down-pos (fn [_] (deref mouse-pos-state)))
-    (swap! mousedownstate (fn [_] true))))
+(js/document.addEventListener "mousedown"
+                              (fn [x]
+                                (swap! mouse-down-pos (fn [_] @mouse-pos-state))
+                                (swap! mousedownstate (fn [_] true))))
+
 (def max-speed 10)
 (def max-distance 200)
 (js/document.addEventListener
@@ -58,7 +59,7 @@
   "mouseup"
   (fn [x]
     (swap! state (fn [state]
-                   (let [{downX :x, downY :y} (deref mouse-down-pos)
+                   (let [{downX :x, downY :y} @mouse-down-pos
                          hoverX x.pageX
                          hoverY x.pageY
                          xDiff (js/Math.abs (- downX hoverX))
@@ -108,10 +109,12 @@
 
 (defn point-gravity
   [point points]
-  (let [forces (map #(gravity-vec point %) points)] forces))
+  (let [stuff (map #(gravity-vec point %) points)] stuff))
 
-(defn add-vec [a b] {:x (+ (:x a) (:x b)), :y (+ (:y a) (:y b))})
+
+(defn add-vec [{xa :x, ya :y} {xb :x, yb :y}] {:x (+ xa xb), :y (+ ya yb)})
 (add-vec {:x 1, :y 2} {:x 3, :y 4})
+
 (let [pts [{:pos {:x 10, :y 10}} {:pos {:x 9.0, :y 9.0}}
            {:pos {:x 11.0, :y 11.0}}]
       pt (nth pts 0)]
@@ -122,10 +125,10 @@
   (let [myfn (fn [state]
                (map (fn [p]
                       (-> p
-                          (update-in [:vel]
-                                     #(add-vec %
-                                               (reduce add-vec
-                                                 (point-gravity p state))))
+                          (update :vel
+                                  #(add-vec %
+                                            (reduce add-vec
+                                              (point-gravity p state))))
                           (update-in [:vel :y]
                                      #(force-polarity (get-in p [:pos :y])
                                                       (.-height canvas)
@@ -142,9 +145,9 @@
 (defn render
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
-           (deref state)))
+           @state))
   (doall
-    (let [{x :x, y :y} (deref mouse-down-pos)]
+    (let [{x :x, y :y} @mouse-down-pos]
       (when (and x y) (.beginPath ctx) (.moveTo ctx x y) (.lineTo ctx x y)))))
 
 (def looping (atom true))
@@ -153,7 +156,7 @@
   (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
   (render)
   (myiter)
-  (when (deref looping) (js/requestAnimationFrame myloop)))
+  (when @looping (js/requestAnimationFrame myloop)))
 
 (myloop)
 
