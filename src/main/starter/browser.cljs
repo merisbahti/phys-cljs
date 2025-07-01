@@ -5,6 +5,7 @@
 (defn ^:dev/after-load init [] (start))
 
 (def canvas (js/document.querySelector "canvas"))
+
 ;; set canvas width and height
 
 (defn update-canvas-size
@@ -26,7 +27,8 @@
   (.beginPath ctx)
   (set! (.-fillStyle ctx) color)
   (.arc ctx x y 5 0 (* Math/PI 2) true)
-  (.fill ctx))
+  (.fill ctx)
+  (.closePath ctx))
 
 (def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
 (def mouse-pos-state (atom {:x 0, :y 0}))
@@ -89,8 +91,9 @@
   [pos max-pos vel]
   (cond (> pos max-pos) (* -1 (abs vel))
         (> 0 pos) (abs vel)
-        true vel))
+        :else vel))
 (def G 0.00000081)
+
 
 (defn gravity-vec
   [p1 p2]
@@ -105,7 +108,6 @@
     (if (< tot-diff 0.1)
       {:x 0, :y 0}
       {:x (* x-part total-force), :y (* y-part total-force)})))
-(gravity-vec {:pos {:x 10, :y 10}} {:pos {:x -10, :y -10}})
 
 (defn point-gravity
   [point points]
