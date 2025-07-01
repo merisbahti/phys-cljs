@@ -1,5 +1,4 @@
-(ns starter.browser
-  (:require [clojure.walk :as walk]))
+(ns starter.browser)
 
 ;; start is called by init and after code reloading finishes
 (defn ^:dev/after-load start [] (js/console.log "start"))
@@ -85,6 +84,7 @@
     (swap! mouse-down-pos (fn [_] nil))
     (swap! mousedownstate (fn [_] false))))
 
+
 (defn force-polarity
   [pos max-pos vel]
   (cond (> pos max-pos) (* -1 (abs vel))
@@ -146,9 +146,20 @@
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
            @state))
-  (doall
-    (let [{x :x, y :y} @mouse-down-pos]
-      (when (and x y) (.beginPath ctx) (.moveTo ctx x y) (.lineTo ctx x y)))))
+  (doall (let [{m-down-x :x, m-down-y :y} @mouse-down-pos
+               {mouse-x :x, mouse-y :y} @mouse-pos-state
+               actual-distance (js/Math.sqrt
+                                 (+ (js/Math.pow (- m-down-x mouse-x) 2)
+                                    (js/Math.pow (- m-down-y mouse-y) 2)))
+               distance (min actual-distance max-distance)
+               stroke-width (* 10 (/ distance max-distance))]
+           (when (and m-down-x m-down-y)
+             (.beginPath ctx)
+             (.moveTo ctx m-down-x m-down-y)
+             (.lineTo ctx mouse-x mouse-y)
+             (set! (.-lineWidth ctx) stroke-width)
+             (set! (.-strokeStyle ctx) "#f00")
+             (.stroke ctx)))))
 
 (def looping (atom true))
 (defn myloop
@@ -161,4 +172,4 @@
 (myloop)
 
 ;; this is called before any code is reloaded
-(defn ^:dev/before-load stop [] (set! looping true))
+(defn ^:dev/before-load stop [] (reset! looping true))
