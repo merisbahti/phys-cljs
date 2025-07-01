@@ -33,7 +33,7 @@
 (def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
 (def mouse-pos-state (atom {:x 0, :y 0}))
 (def mouse-down-pos (atom nil))
-(def mousedownstate (atom false))
+
 
 (defn random-color
   "gives a random color between 000 and fff"
@@ -46,9 +46,7 @@
       (.padStart 6 "0")
       (#(str "#" %))))
 (js/document.addEventListener "mousedown"
-                              (fn [x]
-                                (swap! mouse-down-pos (fn [_] @mouse-pos-state))
-                                (swap! mousedownstate (fn [_] true))))
+                              (fn [_] (reset! mouse-down-pos @mouse-pos-state)))
 
 (def max-speed 10)
 (def max-distance 200)
@@ -74,17 +72,11 @@
                          xPart (/ (- downX hoverX) xySum)
                          xVel (* xPart distanceFactor max-speed)
                          yVel (* yPart distanceFactor max-speed)]
-                     (js/console.log distance
-                                     distanceFactor
-                                     (clj->js {:color (random-color),
-                                               :pos {:x downX, :y downY},
-                                               :vel {:x xVel, :y yVel}}))
                      (conj state
                            {:color (random-color),
                             :pos {:x downX, :y downY},
                             :vel {:x xVel, :y yVel}}))))
-    (swap! mouse-down-pos (fn [_] nil))
-    (swap! mousedownstate (fn [_] false))))
+    (swap! mouse-down-pos (fn [_] nil))))
 
 
 (defn force-polarity
@@ -144,6 +136,22 @@
                  state))]
     (swap! state myfn)))
 
+(defn draw-line
+  [{x1 :x, y1 :y} {x2 :x, y2 :y} &
+   {:keys [stroke-width stroke-style], :or {stroke-width 1, stroke-style nil}}]
+  (.beginPath ctx)
+  (.moveTo ctx x1 y1)
+  (.lineTo ctx x2 y2)
+  (set! (.-lineWidth ctx) stroke-width)
+  (set! (.-strokeStyle ctx) stroke-style)
+  (.stroke ctx)
+  (.closePath ctx))
+
+(draw-line {:x 0, :y 0}
+           {:x 100, :y 100}
+           {:stroke-width 10, :stroke-style "#fff"})
+
+
 (defn render
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
@@ -156,12 +164,11 @@
                distance (min actual-distance max-distance)
                stroke-width (* 10 (/ distance max-distance))]
            (when (and m-down-x m-down-y)
-             (.beginPath ctx)
-             (.moveTo ctx m-down-x m-down-y)
-             (.lineTo ctx mouse-x mouse-y)
-             (set! (.-lineWidth ctx) stroke-width)
-             (set! (.-strokeStyle ctx) "#f00")
-             (.stroke ctx)))))
+             (draw-line @mouse-down-pos
+                        @mouse-pos-state
+                        {:stroke-width stroke-width, :stroke-style "#800"})))))
+
+
 
 (def looping (atom true))
 (defn myloop
