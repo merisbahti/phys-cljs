@@ -1,8 +1,8 @@
 (ns starter.browser)
 
 ;; start is called by init and after code reloading finishes
-(defn ^:dev/after-load start [] (js/console.log "start"))
-(defn ^:dev/after-load init [] (start))
+
+
 
 (def canvas (js/document.querySelector "canvas"))
 
@@ -45,39 +45,10 @@
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
-(js/document.addEventListener "mousedown"
-                              (fn [_] (reset! mouse-down-pos @mouse-pos-state)))
+
 
 (def max-speed 10)
 (def max-distance 200)
-(js/document.addEventListener
-  "mousemove"
-  (fn [x] (swap! mouse-pos-state (fn [_] {:x x.pageX, :y x.pageY}))))
-
-(js/document.addEventListener
-  "mouseup"
-  (fn [x]
-    (swap! state (fn [state]
-                   (let [{downX :x, downY :y} @mouse-down-pos
-                         hoverX x.pageX
-                         hoverY x.pageY
-                         xDiff (js/Math.abs (- downX hoverX))
-                         yDiff (js/Math.abs (- downY hoverY))
-                         distance (js/Math.sqrt (+ (js/Math.pow xDiff 2)
-                                                   (js/Math.pow yDiff 2)))
-                         distanceFactor (/ (js/Math.min 200 distance)
-                                           max-distance)
-                         xySum (+ xDiff yDiff)
-                         yPart (/ (- downY hoverY) xySum)
-                         xPart (/ (- downX hoverX) xySum)
-                         xVel (* xPart distanceFactor max-speed)
-                         yVel (* yPart distanceFactor max-speed)]
-                     (conj state
-                           {:color (random-color),
-                            :pos {:x downX, :y downY},
-                            :vel {:x xVel, :y yVel}}))))
-    (swap! mouse-down-pos (fn [_] nil))))
-
 
 (defn force-polarity
   [pos max-pos vel]
@@ -114,7 +85,7 @@
       pt (nth pts 0)]
   (reduce add-vec (point-gravity pt pts)))
 
-(defn myiter
+(defn update-state
   []
   (let [myfn (fn [state]
                (map (fn [p]
@@ -170,15 +141,50 @@
 
 
 
-(def looping (atom true))
-(defn myloop
+(def current-interval (atom nil))
+
+(defn raf-loop
   []
   (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
   (render)
-  (myiter)
-  (when @looping (js/requestAnimationFrame myloop)))
+  (update-state))
 
-(myloop)
+(defn ^:dev/after-load myloop
+  []
+  (js/clearInterval @current-interval)
+  (let [new-interval (js/setInterval raf-loop 60)]
+    (reset! current-interval new-interval)))
 
-;; this is called before any code is reloaded
-(defn ^:dev/before-load stop [] (reset! looping true))
+(defn init
+  []
+  (println "starting loop")
+  (js/document.addEventListener "mousedown"
+                                (fn [_]
+                                  (reset! mouse-down-pos @mouse-pos-state)))
+  (js/document.addEventListener
+    "mousemove"
+    (fn [x] (swap! mouse-pos-state (fn [_] {:x x.pageX, :y x.pageY}))))
+  (js/document.addEventListener
+    "mouseup"
+    (fn [event]
+      (swap! state (fn [state]
+                     (let [{downX :x, downY :y} @mouse-down-pos
+                           hoverX event.pageX
+                           hoverY event.pageY
+                           xDiff (js/Math.abs (- downX hoverX))
+                           yDiff (js/Math.abs (- downY hoverY))
+                           distance (js/Math.sqrt (+ (js/Math.pow xDiff 2)
+                                                     (js/Math.pow yDiff 2)))
+                           distanceFactor (/ (js/Math.min 200 distance)
+                                             max-distance)
+                           xySum (+ xDiff yDiff)
+                           yPart (/ (- downY hoverY) xySum)
+                           xPart (/ (- downX hoverX) xySum)
+                           xVel (* xPart distanceFactor max-speed)
+                           yVel (* yPart distanceFactor max-speed)]
+                       (conj state
+                             {:color (random-color),
+                              :pos {:x downX, :y downY},
+                              :vel {:x xVel, :y yVel}}))))
+      (swap! mouse-down-pos (fn [_] nil))))
+  (myloop))
