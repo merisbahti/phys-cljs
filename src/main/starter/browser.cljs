@@ -41,7 +41,7 @@
   []
   (-> (math/random)
       (* (/ (* 0xFFFFFF) 4))
-      (+ (* 3 (/ (* 0xFFFFFF) 4)))
+      (+ (* 2 (/ (* 0xFFFFFF) 4)))
       (math/ceil)
       (.toString 16)
       (.padStart 6 "0")
