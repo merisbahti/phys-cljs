@@ -1,4 +1,5 @@
-(ns starter.browser)
+(ns starter.browser
+  (:require [cljs.math :as math]))
 
 ;; start is called by init and after code reloading finishes
 
@@ -30,21 +31,40 @@
   (.fill ctx)
   (.closePath ctx))
 
-(def state (atom [{:color "#f0f", :pos {:x 0, :y 150}, :vel {:x 0, :y 0}}]))
-(def mouse-pos-state (atom {:x 0, :y 0}))
-(def mouse-down-pos (atom nil))
-
+(defn draw-points-equispaced
+  [count distance {originX :x, originY :y}]
+  (map (fn [n]
+         {:x (+ originX (* distance (math/sin (* (/ n count) 2 Math/PI)))),
+          :y (+ originY (* distance (math/cos (* (/ n count) 2 Math/PI))))})
+    (range count)))
+(comment
+  (draw-points-equispaced 10
+                          100
+                          {:x (/ js/window.innerWidth 2),
+                           :y (/ js/window.innerHeight 2)}))
 
 (defn random-color
   "gives a random color between 000 and fff"
   []
-  (-> (js/Math.random)
+  (-> (math/random)
       (* (/ (* 0xFFFFFF) 4))
       (+ (* 3 (/ (* 0xFFFFFF) 4)))
-      (js/Math.ceil)
+      (math/ceil)
       (.toString 16)
       (.padStart 6 "0")
       (#(str "#" %))))
+
+(def state
+  (atom (map (fn [point] {:color (random-color), :pos point, :vel {:x 0, :y 0}})
+          (draw-points-equispaced 10
+                                  100
+                                  {:x (/ js/window.innerWidth 2),
+                                   :y (/ js/window.innerHeight 2)}))))
+
+(def mouse-pos-state (atom {:x 0, :y 0}))
+(def mouse-down-pos (atom nil))
+
+
 
 
 (def max-speed 10)
