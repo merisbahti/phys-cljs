@@ -15,8 +15,6 @@
 
 (def ctx (.getContext canvas "2d"))
 
-;;ctx.lineWidth = 10;
-;; assign object properties
 
 (defn draw-circle
   [x y color]
@@ -94,25 +92,21 @@
 
 (defn update-state
   []
-  (let [myfn (fn [state]
-               (map (fn [p]
-                      (-> p
-                          (update :vel
-                                  #(add-vec %
-                                            (reduce add-vec
-                                              (point-gravity p state))))
-                          (update-in [:vel :y]
-                                     #(force-polarity (get-in p [:pos :y])
-                                                      (.-height canvas)
-                                                      %))
-                          (update-in [:vel :x]
-                                     #(force-polarity (get-in p [:pos :x])
-                                                      (.-width canvas)
-                                                      %))
-                          (update-in [:pos :y] #(+ % (get-in p [:vel :y])))
-                          (update-in [:pos :x] #(+ % (get-in p [:vel :x])))))
-                 state))]
-    (swap! state myfn)))
+  (swap! state
+    (fn [state]
+      (map (fn [p]
+             (-> p
+                 (update :vel
+                         #(add-vec % (reduce add-vec (point-gravity p state))))
+                 (update-in
+                   [:vel :y]
+                   #(force-polarity (get-in p [:pos :y]) (.-height canvas) %))
+                 (update-in
+                   [:vel :x]
+                   #(force-polarity (get-in p [:pos :x]) (.-width canvas) %))
+                 (update-in [:pos :y] #(+ % (get-in p [:vel :y])))
+                 (update-in [:pos :x] #(+ % (get-in p [:vel :x])))))
+        state))))
 
 (defn draw-line
   [{x1 :x, y1 :y} {x2 :x, y2 :y} &
