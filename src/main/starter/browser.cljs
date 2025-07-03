@@ -137,19 +137,18 @@
 
 
 
-(defonce current-interval (atom nil))
+(defonce loop-id (atom nil))
 
 (defn raf-loop
-  []
-  (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
-  (render)
-  (update-state))
+  [id]
+  (when (= id @loop-id)
+    (.clearRect ctx 0 0 (.-width canvas) (.-height canvas))
+    (render)
+    (update-state)
+    (js/requestAnimationFrame (partial raf-loop id))))
 
-(defn ^:dev/after-load myloop
-  []
-  (js/clearInterval @current-interval)
-  (let [new-interval (js/setInterval raf-loop 8)]
-    (reset! current-interval new-interval)))
+
+(defn ^:dev/after-load myloop [] (raf-loop (swap! loop-id inc)))
 
 (defn init
   []
