@@ -3,8 +3,6 @@
 
 ;; start is called by init and after code reloading finishes
 
-
-
 (def canvas (js/document.querySelector "canvas"))
 
 ;; set canvas width and height
@@ -12,11 +10,8 @@
 (defn update-canvas-size
   []
   (let [canvas (js/document.querySelector "canvas")]
-    (js/console.log "resizing")
     (set! (.-width canvas) js/window.innerWidth)
     (set! (.-height canvas) js/window.innerHeight)))
-(js/window.addEventListener "resize" update-canvas-size)
-(update-canvas-size)
 
 (def ctx (.getContext canvas "2d"))
 
@@ -56,17 +51,13 @@
 
 (def state
   (atom (map (fn [point] {:color (random-color), :pos point, :vel {:x 0, :y 0}})
-          (draw-points-equispaced 10
+          (draw-points-equispaced 50
                                   100
                                   {:x (/ js/window.innerWidth 2),
                                    :y (/ js/window.innerHeight 2)}))))
 
 (def mouse-pos-state (atom {:x 0, :y 0}))
 (def mouse-down-pos (atom nil))
-
-
-
-
 (def max-speed 10)
 (def max-distance 200)
 
@@ -98,12 +89,8 @@
 
 
 (defn add-vec [{xa :x, ya :y} {xb :x, yb :y}] {:x (+ xa xb), :y (+ ya yb)})
-(add-vec {:x 1, :y 2} {:x 3, :y 4})
-
-(let [pts [{:pos {:x 10, :y 10}} {:pos {:x 9.0, :y 9.0}}
-           {:pos {:x 11.0, :y 11.0}}]
-      pt (nth pts 0)]
-  (reduce add-vec (point-gravity pt pts)))
+(comment
+  (add-vec {:x 1, :y 2} {:x 3, :y 4}))
 
 (defn update-state
   []
@@ -138,11 +125,6 @@
   (.stroke ctx)
   (.closePath ctx))
 
-(draw-line {:x 0, :y 0}
-           {:x 100, :y 100}
-           {:stroke-width 10, :stroke-style "#fff"})
-
-
 (defn render
   []
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
@@ -161,7 +143,7 @@
 
 
 
-(def current-interval (atom nil))
+(defonce current-interval (atom nil))
 
 (defn raf-loop
   []
@@ -172,12 +154,13 @@
 (defn ^:dev/after-load myloop
   []
   (js/clearInterval @current-interval)
-  (let [new-interval (js/setInterval raf-loop 60)]
+  (let [new-interval (js/setInterval raf-loop 8)]
     (reset! current-interval new-interval)))
 
 (defn init
   []
-  (println "starting loop")
+  (update-canvas-size)
+  (js/window.addEventListener "resize" update-canvas-size)
   (js/document.addEventListener "mousedown"
                                 (fn [_]
                                   (reset! mouse-down-pos @mouse-pos-state)))
