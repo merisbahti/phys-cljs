@@ -58,11 +58,6 @@
 (def max-speed 10)
 (def max-distance 200)
 
-(defn force-polarity
-  [pos max-pos vel]
-  (cond (> pos max-pos) (* -1 (abs vel))
-    (> 0 pos) (abs vel)
-    :else vel))
 (def G 0.00000081)
 
 (defn gravity-vec
@@ -79,13 +74,13 @@
       {:x 0, :y 0}
       {:x (* x-part total-force), :y (* y-part total-force)})))
 
-(defn point-gravity
-  [point points]
-  (map #(gravity-vec point %) points))
-
 (defn add-vec [{xa :x, ya :y} {xb :x, yb :y}] {:x (+ xa xb), :y (+ ya yb)})
 (comment
   (add-vec {:x 1, :y 2} {:x 3, :y 4}))
+
+(defn point-gravity
+  [point points]
+  (reduce add-vec (map #(gravity-vec point %) points)))
 
 (defn update-state
   []
@@ -93,16 +88,7 @@
     (fn [state]
       (map (fn [p]
              (-> p
-               (update :vel
-                 #(add-vec % (reduce add-vec (point-gravity p state))))
-               (update-in [:vel :y]
-                 (partial force-polarity
-                   (get-in p [:pos :y])
-                   (.-height canvas)))
-               (update-in [:vel :x]
-                 (partial force-polarity
-                   (get-in p [:pos :x])
-                   (.-width canvas)))
+               (update-in [:vel]    (partial add-vec  (point-gravity p state)))
                (update-in [:pos :y] (partial + (get-in p [:vel :y])))
                (update-in [:pos :x] (partial + (get-in p [:vel :x])))))
         state))))
