@@ -87,10 +87,10 @@
   (swap! state
     (fn [state]
       (map (fn [point]
-             #(-> point
-                (update-in [:vel]    (partial add-vec  (point-gravity point state)))
-                (update-in [:pos :y] (partial + (get-in point [:vel :y])))
-                (update-in [:pos :x] (partial + (get-in point [:vel :x])))))
+             (-> point
+               (update-in [:vel]    (partial add-vec  (point-gravity point state)))
+               (update-in [:pos :y] (partial + (get-in point [:vel :y])))
+               (update-in [:pos :x] (partial + (get-in point [:vel :x])))))
         state))))
 
 (defn draw-line
