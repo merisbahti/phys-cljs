@@ -53,7 +53,7 @@
             {:x (/ js/window.innerWidth 2),
              :y (/ js/window.innerHeight 2)}))))
 
-(def mouse-pos-state (atom {:x 0, :y 0}))
+(def mouse-pos (atom {:x 0, :y 0}))
 (def mouse-down-pos (atom nil))
 (def max-speed 10)
 (def max-distance 200)
@@ -109,7 +109,7 @@
   (doall (map (fn [p] (draw-circle (:x (:pos p)) (:y (:pos p)) (:color p)))
            @state))
   (doall (let [{m-down-x :x, m-down-y :y} @mouse-down-pos
-               {mouse-x :x, mouse-y :y} @mouse-pos-state
+               {mouse-x :x, mouse-y :y} @mouse-pos
                actual-distance (js/Math.sqrt
                                  (+ (js/Math.pow (- m-down-x mouse-x) 2)
                                    (js/Math.pow (- m-down-y mouse-y) 2)))
@@ -117,7 +117,7 @@
                stroke-width (* 10 (/ distance max-distance))]
            (when (and m-down-x m-down-y)
              (draw-line @mouse-down-pos
-               @mouse-pos-state
+               @mouse-pos
                {:stroke-width stroke-width, :stroke-style "#800"})))))
 
 (defonce loop-id (atom nil))
@@ -137,32 +137,36 @@
   (update-canvas-size)
   (js/window.addEventListener "resize" update-canvas-size)
   (js/document.addEventListener "mousedown"
-    (fn [_]
-      (reset! mouse-down-pos @mouse-pos-state)))
+    (fn [x]
+      (reset! mouse-pos {:x x.pageX, :y x.pageY})
+      (reset! mouse-down-pos {:x x.pageX, :y x.pageY})))
   (js/document.addEventListener
     "mousemove"
-    (fn [x] (swap! mouse-pos-state (fn [_] {:x x.pageX, :y x.pageY}))))
+    (fn [x] (reset! mouse-pos {:x x.pageX, :y x.pageY})))
   (js/document.addEventListener
     "mouseup"
     (fn [event]
-      (swap! state (fn [state]
-                     (let [{downX :x, downY :y} @mouse-down-pos
-                           hoverX event.pageX
-                           hoverY event.pageY
-                           xDiff (js/Math.abs (- downX hoverX))
-                           yDiff (js/Math.abs (- downY hoverY))
-                           distance (js/Math.sqrt (+ (js/Math.pow xDiff 2)
-                                                    (js/Math.pow yDiff 2)))
-                           distanceFactor (/ (js/Math.min 200 distance)
-                                            max-distance)
-                           xySum (+ xDiff yDiff)
-                           yPart (/ (- downY hoverY) xySum)
-                           xPart (/ (- downX hoverX) xySum)
-                           xVel (* xPart distanceFactor max-speed)
-                           yVel (* yPart distanceFactor max-speed)]
-                       (conj state
-                         {:color (random-color),
-                          :pos {:x downX, :y downY},
-                          :vel {:x xVel, :y yVel}}))))
-      (swap! mouse-down-pos (fn [_] nil))))
+      (swap! state
+        (fn [state]
+          (if @mouse-down-pos
+            (let [{downX :x, downY :y} @mouse-down-pos
+                  hoverX event.pageX
+                  hoverY event.pageY
+                  xDiff (js/Math.abs (- downX hoverX))
+                  yDiff (js/Math.abs (- downY hoverY))
+                  distance (js/Math.sqrt (+ (js/Math.pow xDiff 2)
+                                           (js/Math.pow yDiff 2)))
+                  distanceFactor (/ (js/Math.min 200 distance)
+                                   max-distance)
+                  xySum (+ xDiff yDiff)
+                  yPart (/ (- downY hoverY) xySum)
+                  xPart (/ (- downX hoverX) xySum)
+                  xVel (* xPart distanceFactor max-speed)
+                  yVel (* yPart distanceFactor max-speed)]
+              (conj state
+                {:color (random-color),
+                 :pos {:x downX, :y downY},
+                 :vel {:x xVel, :y yVel}}))
+            state)))
+      (reset! mouse-down-pos nil)))
   (myloop))
