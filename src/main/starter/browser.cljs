@@ -35,23 +35,31 @@
     {:x (/ js/window.innerWidth 2),
      :y (/ js/window.innerHeight 2)}))
 
+(def min-color 0xEEEEEE)
 (defn random-color
   "gives a random color between 000 and fff"
   []
-  (-> (math/random)
-    (* (/ (* 0xFFFFFF) 4))
-    (+ (* 2 (/ (* 0xFFFFFF) 4)))
+  (->
+    (math/random)
+    (* min-color)
+    (+ (- 0xFFFFFF min-color))
     (math/ceil)
     (.toString 16)
     (.padStart 6 "0")
-    (#(str "#" %))))
+    ((partial str "#"))))
 
 (def state
   (atom (map (fn [point] {:color (random-color), :pos point, :vel {:x 0, :y 0}})
-          (draw-points-equispaced 50
-            100
-            {:x (/ js/window.innerWidth 2),
-             :y (/ js/window.innerHeight 2)}))))
+          (concat
+            (draw-points-equispaced 5
+              5
+              {:x (+ (/ js/window.innerWidth 2) 50),
+               :y (+ (/ js/window.innerHeight 2) 50)})
+            ;; (draw-points-equispaced 5
+            ;;   30
+            ;;   {:x (- (/ js/window.innerWidth 2) 50),
+            ;;    :y (- (/ js/window.innerHeight 2) 50)})
+            ))))
 
 (def mouse-pos (atom {:x 0, :y 0}))
 (def mouse-down-pos (atom nil))
@@ -70,7 +78,7 @@
         squared-diff (js/Math.sqrt (+ (js/Math.pow y-diff 2)
                                      (js/Math.pow x-diff 2)))
         total-force (* G squared-diff)]
-    (if (< tot-diff 0.1)
+    (if (< tot-diff 10)
       {:x 0, :y 0}
       {:x (* x-part total-force), :y (* y-part total-force)})))
 
@@ -161,8 +169,7 @@
                   xySum (+ xDiff yDiff)
                   yPart (/ (- downY hoverY) xySum)
                   xPart (/ (- downX hoverX) xySum)
-                  xVel (* xPart distanceFactor max-speed)
-                  yVel (* yPart distanceFactor max-speed)]
+                  [xVel yVel] (map #(if (js/isNaN %1) 0 (* %1 distanceFactor max-speed) ) [xPart yPart])]
               (conj state
                 {:color (random-color),
                  :pos {:x downX, :y downY},
