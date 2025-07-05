@@ -41,8 +41,8 @@
   []
   (->
     (math/random)
-    (* min-color)
-    (+ (- 0xFFFFFF min-color))
+    (* (- 0xFFFFFF min-color))
+    (+ min-color)
     (math/ceil)
     (.toString 16)
     (.padStart 6 "0")
